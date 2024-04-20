@@ -51,6 +51,8 @@
       :show="showDecommissionModal"
       :set-is-open="setShowDecommissionModal"
     />
+
+    <plutonication-modal />
   </div>
 </template>
 <script lang="ts">

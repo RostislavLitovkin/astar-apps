@@ -129,6 +129,10 @@
 <script lang="ts">
 import { wait } from '@astar-network/astar-sdk-core';
 import { initPolkadotSnap } from '@astar-network/metamask-astar-adapter';
+import {
+  AccessCredentials,
+  initializePlutonicationDAppClientWithModal,
+} from '@plutonication/plutonication';
 import { $api } from 'src/boot/api';
 import { endpointKey } from 'src/config/chainEndpoints';
 import {
@@ -257,7 +261,22 @@ export default defineComponent({
       await disconnectAccount();
       if (source === SupportWallet.Snap) {
         await handleMetaMaskSnap();
+      } else if (source == SupportWallet.Plutonication) {
+        console.log('Connecting to PlutoWallet');
+        const accessCredentials = new AccessCredentials(
+          'wss://plutonication-acnha.ondigitalocean.app/',
+          'Astar portal',
+          'https://rostislavlitovkin.pythonanywhere.com/plutowalleticonwhite'
+        );
+
+        await initializePlutonicationDAppClientWithModal(
+          accessCredentials,
+          (_receivedPubkey: string) => {
+            /* */
+          }
+        );
       }
+
       await closeUi();
       props.setWalletModal(source);
     };

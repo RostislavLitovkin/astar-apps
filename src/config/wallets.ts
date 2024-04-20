@@ -28,6 +28,7 @@ export enum SupportWallet {
   EnkryptEvm = 'enkryptEvm',
   EnkryptNative = 'enkrypt',
   WalletConnect = 'wallet-connect',
+  Plutonication = 'plutonication',
 }
 
 export enum SupportMultisig {
@@ -76,6 +77,7 @@ export const SubstrateWallets = [
   SupportWallet.OneKeyNative,
   SupportWallet.Snap,
   SupportWallet.EnkryptNative,
+  SupportWallet.Plutonication,
 ];
 
 export interface Wallet {
@@ -197,6 +199,15 @@ export const supportWalletObj = {
     source: SupportWallet.EnkryptNative,
     walletUrl: 'https://www.enkrypt.com',
     guideUrl: 'https://myetherwallet.gitbook.io/enkrypt-documentation/',
+    isSupportBrowserExtension: true,
+    isSupportMobileApp: false,
+  },
+  [SupportWallet.Plutonication]: {
+    img: require('/src/assets/img/logo-plutonication.png'),
+    name: 'Plutonication',
+    source: SupportWallet.Plutonication,
+    walletUrl: 'https://plutonication.com',
+    guideUrl: 'https://plutonication.com',
     isSupportBrowserExtension: true,
     isSupportMobileApp: false,
   },
