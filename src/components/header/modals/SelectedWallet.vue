@@ -1,76 +1,321 @@
 <template>
-  <div class="box__row--wallet">
-    <div class="wrapper--row--wallet">
-      <img v-if="selWallet.img" width="24" :src="selWallet.img" />
-      <div class="txt--wallet-name">{{ selWallet.name }}</div>
+  <div
+    :class="[
+      isAnimatedIn && 'animate__animated animate__fadeInRight',
+      isClosing && 'animate__animated animate__fadeOutLeft',
+    ]"
+  >
+    <div class="wrapper--modal--wallet">
+      <div>
+        <div class="title--account-type">
+          <span>
+            {{ $t('wallet.evmWallets') }}
+          </span>
+        </div>
+        <div class="wrapper--wallets">
+          <div v-for="(wallet, index) in evmWallets" :key="index">
+            <button
+              class="box__row--wallet box--hover--active"
+              :class="currentWallet === wallet.source && 'border--active'"
+              @click="setEvmWalletModal(wallet.source)"
+            >
+              <div class="box--img">
+                <img :src="wallet.img" />
+              </div>
+              <div>
+                <span>
+                  {{ castWalletName(wallet.name) }}
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="title--account-type">
+          <span>
+            {{ $t('wallet.nativeWallets') }}
+          </span>
+        </div>
+        <div class="wrapper--wallets">
+          <button
+            v-for="(wallet, index) in nativeWallets"
+            :key="index"
+            :data-testid="wallet.name"
+            :disabled="isZkEvm"
+            class="box__row--wallet box--hover--active"
+            :class="currentWallet === wallet.source && 'border--active'"
+            @click="setSubstrateWalletModal(wallet.source)"
+          >
+            <div class="box--img">
+              <img :src="wallet.img" />
+            </div>
+            <div>
+              <span>
+                {{ castWalletName(wallet.name) }}
+              </span>
+            </div>
+          </button>
+          <button
+            v-if="isEnablePolkasafe"
+            class="box__row--wallet box--hover--active"
+            :disabled="isZkEvm"
+            :class="currentWallet === SupportMultisig.Polkasafe && 'border--active'"
+            @click="setPolkasafeModal()"
+          >
+            <div class="box--img">
+              <img
+                :src="require('src/assets/img/logo-polkasafe-black.svg')"
+                class="img--polkasafe"
+              />
+            </div>
+            <div>
+              <span> PolkaSafe </span>
+            </div>
+          </button>
+        </div>
+        <div v-if="selWallet && isNoExtension" class="box--no-extension">
+          <div class="title--no-extension">
+            <span class="text--install-title">
+              {{ $t('installWallet.getWallet', { value: $t(selWallet.name) }) }}
+            </span>
+          </div>
+          <div class="row--no-extension">
+            <span class="text--install">
+              {{ $t('installWallet.installWallet', { value: $t(selWallet.name) }) }}</span
+            >
+          </div>
+          <div class="row--icon-links">
+            <button>
+              <a
+                :href="selWallet.walletUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="button--link"
+              >
+                <div class="icon--link">
+                  <astar-icon-external-link />
+                </div>
+                <span class="text--install-link">
+                  {{ $t('installWallet.install') }}
+                </span>
+              </a>
+            </button>
+            <button>
+              <a
+                :href="selWallet.guideUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="button--link"
+              >
+                <div class="icon--link">
+                  <astar-icon-external-link />
+                </div>
+                <span class="text--install-link">
+                  {{ $t('installWallet.learn') }}
+                </span>
+              </a>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button :disabled="!currentWallet" class="btn--disconnect" @click="disconnectAccount()">
+        {{ $t('disconnect') }}
+      </button>
     </div>
   </div>
 </template>
 <script lang="ts">
-import { supportAllWalletsObj, SupportWallet } from 'src/config/wallets';
-import { computed, defineComponent, PropType } from 'vue';
-
+import { wait } from '@astar-network/astar-sdk-core';
+import { initPolkadotSnap } from '@astar-network/metamask-astar-adapter';
+import {
+  AccessCredentials,
+  initializePlutonicationDAppClientWithModal,
+} from '@plutonication/plutonication';
+import { $api } from 'src/boot/api';
+import { endpointKey } from 'src/config/chainEndpoints';
+import {
+  SupportMultisig,
+  SupportWallet,
+  Wallet,
+  supportAllWalletsObj,
+  supportEvmWallets,
+  supportWallets,
+} from 'src/config/wallets';
+import { useAccount, useNetworkInfo } from 'src/hooks';
+import { getInjectedExtensions, isMobileDevice } from 'src/hooks/helper/wallet';
+import { useExtensions } from 'src/hooks/useExtensions';
+import { initiatePolkdatodSnap } from 'src/modules/snap';
+import { useStore } from 'src/store';
+import { SubstrateAccount } from 'src/store/general/state';
+import { PropType, computed, defineComponent, ref } from 'vue';
 export default defineComponent({
   props: {
+    setWalletModal: {
+      type: Function,
+      required: true,
+    },
+    connectEthereumWallet: {
+      type: Function,
+      required: true,
+    },
+    openPolkasafeModal: {
+      type: Function,
+      required: true,
+    },
+    isNoExtension: {
+      type: Boolean,
+      required: true,
+    },
+    isZkEvm: {
+      type: Boolean,
+      required: true,
+    },
     selectedWallet: {
       type: String as PropType<SupportWallet>,
       required: true,
     },
+    selectNetwork: {
+      type: Function,
+      required: true,
+    },
+    selNetworkId: {
+      type: Number,
+      required: true,
+    },
+    isAnimatedIn: {
+      type: Boolean,
+      required: true,
+    },
   },
   setup(props) {
-    const selWallet = computed(() => supportAllWalletsObj[props.selectedWallet]);
+    const store = useStore();
+    const { currentAccountName, disconnectAccount, isAccountUnification } = useAccount();
+    const { currentNetworkIdx } = useNetworkInfo();
+    const isClosing = ref<boolean>(false);
+    const closeUi = async (): Promise<void> => {
+      isClosing.value = true;
+      const animationDuration = 500;
+      await wait(animationDuration);
+      isClosing.value = false;
+    };
+    const nativeWallets = computed(() => {
+      return supportWallets
+        .map((it) => {
+          const { isSupportMobileApp, isSupportBrowserExtension } = it;
+          if (isMobileDevice) {
+            return isSupportMobileApp ? it : undefined;
+          } else {
+            return isSupportBrowserExtension ? it : undefined;
+          }
+        })
+        .filter((it) => it !== undefined) as Wallet[];
+    });
+    const evmWallets = computed(() => {
+      return supportEvmWallets
+        .map((it) => {
+          const { isSupportMobileApp, isSupportBrowserExtension } = it;
+          if (isMobileDevice) {
+            return isSupportMobileApp ? it : undefined;
+          } else {
+            return isSupportBrowserExtension ? it : undefined;
+          }
+        })
+        .filter((it) => it !== undefined) as Wallet[];
+    });
+    const selWallet = computed<Wallet>(
+      () => supportAllWalletsObj[props.selectedWallet as SupportWallet]
+    );
+    const substrateAccounts = computed<SubstrateAccount[]>(
+      () => store.getters['general/substrateAccounts']
+    );
+    const castWalletName = (wallet: string): string => {
+      return wallet.split('(')[0].trim();
+    };
+    const handleExtensions = (): void => {
+      if (substrateAccounts.value.length === 0) {
+        useExtensions($api!!, store);
+      }
+    };
+    const handleMetaMaskSnap = async (): Promise<void> => {
+      const isSnapInstalled = await initiatePolkdatodSnap();
+      if (isSnapInstalled) {
+        await initPolkadotSnap();
+        useExtensions($api!!, store);
+        const extensions = await getInjectedExtensions(true);
+        const isExtensionsUpdated = extensions.some((it) => it.name === SupportWallet.Snap);
+        // Memo: Sync the metamask extension for users who visit our portal first time
+        !isExtensionsUpdated && (await wait(3000));
+      }
+    };
+    const setSubstrateWalletModal = async (source: string): Promise<void> => {
+      await disconnectAccount();
+      if (source === SupportWallet.Snap) {
+        await handleMetaMaskSnap();
+      } else if (source == SupportWallet.Plutonication) {
+        const accessCredentials = new AccessCredentials(
+          'wss://plutonication.com/',
+          'Astar portal',
+          'https://plutonication.com/dapp/astar-icon',
+          'Astar'
+        );
+        await initializePlutonicationDAppClientWithModal(
+          accessCredentials,
+          (_receivedPubkey: string) => {
+            /* */
+          }
+        );
+      }
+      
+      await closeUi();
+      props.setWalletModal(source);
+    };
+    const setPolkasafeModal = async (): Promise<void> => {
+      handleExtensions();
+      props.openPolkasafeModal();
+    };
+    const setEvmWalletModal = async (source: string): Promise<void> => {
+      await disconnectAccount();
+      await props.connectEthereumWallet(source);
+      await props.selectNetwork();
+    };
+    const currentWallet = computed<string>(() => store.getters['general/currentWallet']);
+    const isEnablePolkasafe = computed<boolean>(() => {
+      const networkIdx = store.getters['general/networkIdx'];
+      const isChopstickAstar =
+        networkIdx === endpointKey.CUSTOM && currentNetworkIdx.value === endpointKey.ASTAR;
+      return props.selNetworkId === endpointKey.ASTAR || isChopstickAstar;
+    });
     return {
+      nativeWallets,
+      evmWallets,
+      currentWallet,
+      currentAccountName,
       selWallet,
+      SupportMultisig,
+      castWalletName,
+      setSubstrateWalletModal,
+      setEvmWalletModal,
+      disconnectAccount,
+      setPolkasafeModal,
+      currentNetworkIdx,
+      endpointKey,
+      isAccountUnification,
+      isClosing,
+      isEnablePolkasafe,
+      SupportWallet,
     };
   },
 });
 </script>
 
 <style lang="scss" scoped>
-@import 'src/css/quasar.variables.scss';
-@import 'src/css/utils.scss';
-
-.box__row--wallet {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 6px;
-  height: rem(56);
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 18px;
-  color: $gray-5;
-  margin: 0 auto;
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid $navy-1;
-
-  .wrapper--row--wallet {
-    display: flex;
-    align-items: center;
-
-    .txt--wallet-name {
-      margin-left: 8px;
-    }
-  }
+@use 'src/components/header/styles/select-wallet.scss';
+.animate__animated.animate__fadeInRight {
+  --animate-duration: 0.8s;
 }
-
-.container--wallet {
-  max-height: 228px;
-  border-radius: 6px;
-  padding-top: 4px;
-  overflow: auto;
-  overflow-x: hidden;
-  width: 430px;
-  &:focus {
-    outline: none;
-  }
-}
-
-.body--dark {
-  .box__row--wallet {
-    border: 1px solid $navy-1;
-    color: $gray-1;
-  }
+.animate__animated.animate__fadeOutLeft {
+  --animate-duration: 0.8s;
 }
 </style>
