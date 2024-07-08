@@ -78,6 +78,11 @@ export class MetamaskWalletService extends WalletService implements IWalletServi
     try {
       return new Promise<string>(async (resolve) => {
         const web3 = new Web3(this.provider as any);
+        const resultCheckProvider = await handleCheckProviderChainId(this.provider);
+        if (!resultCheckProvider) {
+          throw Error('Please connect to the correct network in your wallet');
+        }
+
         const accounts = await web3.eth.getAccounts();
         const h160Address = accounts[0];
 
@@ -118,6 +123,8 @@ export class MetamaskWalletService extends WalletService implements IWalletServi
           }
         }
 
+        const contractAddress = evmPrecompiledContract.lockdropDispatch;
+
         const hexEncodedCall = extrinsic.method.toHex();
         const msg = 'Signing transaction for hex-encoded call: ' + hexEncodedCall;
         const signature = (await this.provider.request({
@@ -126,10 +133,7 @@ export class MetamaskWalletService extends WalletService implements IWalletServi
         })) as string;
         const { uncompressedPubKey } = utils.recoverPublicKeyFromSig(h160Address, msg, signature);
 
-        const contract = new web3.eth.Contract(
-          lockdropDispatchAbi as AbiItem[],
-          evmPrecompiledContract.lockdropDispatch
-        );
+        const contract = new web3.eth.Contract(lockdropDispatchAbi as AbiItem[], contractAddress);
 
         const data = contract.methods
           .dispatch_lockdrop_call(hexEncodedCall, uncompressedPubKey)
@@ -137,7 +141,7 @@ export class MetamaskWalletService extends WalletService implements IWalletServi
 
         const hash = await this.sendEvmTransaction({
           from: h160Address,
-          to: evmPrecompiledContract.lockdropDispatch,
+          to: contractAddress,
           data,
           successMessage,
         });

@@ -6,9 +6,9 @@
       </div>
       <div class="container--selection">
         <div class="column--selection">
-          <button :disabled="!isEnableEthBridge">
+          <button :disabled="!isEnableEthBridge || isBridgeMaintenanceMode">
             <component
-              :is="isEnableEthBridge ? 'router-link' : 'div'"
+              :is="isEnableEthBridge && !isBridgeMaintenanceMode ? 'router-link' : 'div'"
               :to="buildEthereumBridgePageLink()"
               class="button--bridge"
             >
@@ -39,11 +39,18 @@
           <p v-if="!isEnableEthBridge" class="text--bridge-details">
             {{ $t('bridge.ethereumBridge.text2') }}
           </p>
+          <p v-if="isBridgeMaintenanceMode" class="text--bridge-details">
+            {{ $t('bridge.bridgeMaintenanceMode') }}
+          </p>
         </div>
 
         <div class="column--selection">
-          <button>
-            <a :href="stargateUrl" target="_blank" rel="noopener noreferrer" class="button--bridge">
+          <button :disabled="!isEnableLzBridge">
+            <component
+              :is="isEnableLzBridge ? 'router-link' : 'div'"
+              :to="buildLzBridgePageLink()"
+              class="button--bridge"
+            >
               <div class="row--logo-bg">
                 <div class="img--logo-bg">
                   <img
@@ -66,8 +73,11 @@
                   </span>
                 </div>
               </div>
-            </a>
+            </component>
           </button>
+          <p v-if="!isEnableLzBridge" class="text--bridge-details">
+            {{ $t('bridge.astarBridge.text2') }}
+          </p>
         </div>
         <div v-if="isZkyoto" class="column--selection">
           <button :disabled="!isEnableEthBridge">
@@ -117,7 +127,7 @@
                   <img
                     class="img--logo"
                     :src="require('src/assets/img/layerswap_logo.svg')"
-                    alt="relay-link"
+                    alt="layer-swap"
                   />
                 </div>
               </div>
@@ -137,40 +147,6 @@
             </a>
           </button>
         </div>
-        <div class="column--selection">
-          <button>
-            <a
-              :href="relayBridgeAppLink"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="button--bridge"
-            >
-              <div class="row--logo-bg">
-                <div class="img--logo-bg">
-                  <img
-                    class="img--logo"
-                    :src="require('src/assets/img/relay_bridge_logo.svg')"
-                    alt="relay-link"
-                  />
-                </div>
-              </div>
-              <div class="row--bridge-title">
-                <div class="text--bridge-tag">
-                  <q-chip outline>
-                    {{ $t('bridge.relayBridge.tag') }}
-                  </q-chip>
-                </div>
-                <span class="text--bridge-title">{{ $t('bridge.relayBridge.title') }}</span>
-                <div class="box--text-bridge">
-                  <span class="text--bridge">
-                    {{ $t('bridge.relayBridge.text', { l1: l1Name, l2: l2Name }) }}
-                  </span>
-                </div>
-              </div>
-            </a>
-          </button>
-        </div>
-
         <div class="column--selection">
           <button>
             <a
@@ -216,20 +192,28 @@
 import { cbridgeAppLink } from 'src/c-bridge';
 import { useAccount, useNetworkInfo } from 'src/hooks';
 import { EthBridgeNetworkName } from 'src/modules/zk-evm-bridge';
-import { Path as RoutePath, buildEthereumBridgePageLink } from 'src/router/routes';
-import { computed, defineComponent } from 'vue';
 import {
-  stargateUrl,
-  layerSwapLink,
-  relayBridgeAppLink,
-  zKatanaBridgeUrl,
-} from 'src/modules/zk-evm-bridge/index';
+  Path as RoutePath,
+  buildEthereumBridgePageLink,
+  buildLzBridgePageLink,
+} from 'src/router/routes';
+import { computed, defineComponent } from 'vue';
+import { layerSwapLink, zKatanaBridgeUrl } from 'src/modules/zk-evm-bridge/index';
 
 export default defineComponent({
   components: {},
   setup() {
     const { currentAccount } = useAccount();
-    const { isZkEvm, networkNameSubstrate, isMainnet, isZkyoto } = useNetworkInfo();
+    const {
+      isZkEvm,
+      networkNameSubstrate,
+      isMainnet,
+      isZkyoto,
+      isAstarZkEvm,
+      isAstar,
+      isH160,
+      isBridgeMaintenanceMode,
+    } = useNetworkInfo();
 
     const l1Name = computed<string>(() => {
       return isZkyoto.value ? EthBridgeNetworkName.Sepolia : EthBridgeNetworkName.Ethereum;
@@ -250,6 +234,10 @@ export default defineComponent({
       return true;
     });
 
+    const isEnableLzBridge = computed<boolean>(() => {
+      return isH160.value && (isAstar.value || isAstarZkEvm.value);
+    });
+
     return {
       currentAccount,
       cbridgeAppLink,
@@ -257,13 +245,14 @@ export default defineComponent({
       isEnableEthBridge,
       l1Name,
       l2Name,
-      relayBridgeAppLink,
       cbridgeNetworkName,
       buildEthereumBridgePageLink,
-      stargateUrl,
+      buildLzBridgePageLink,
       layerSwapLink,
       zKatanaBridgeUrl,
       isZkyoto,
+      isEnableLzBridge,
+      isBridgeMaintenanceMode,
     };
   },
 });

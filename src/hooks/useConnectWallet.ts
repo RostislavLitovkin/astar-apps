@@ -15,8 +15,9 @@ import {
   supportEvmWalletObj,
   supportWalletObj,
 } from 'src/config/wallets';
-import { getChainId, handleCheckProviderChainId, setupNetwork } from 'src/config/web3';
-import { ETHEREUM_EXTENSION, useAccount, useNetworkInfo } from 'src/hooks';
+import { handleCheckProviderChainId } from 'src/config/web3';
+import { useAccount, useNetworkInfo } from 'src/hooks';
+import { ETHEREUM_EXTENSION } from 'src/modules/account';
 import { useEvmAccount } from 'src/hooks/custom-signature/useEvmAccount';
 import {
   castMobileSource,
@@ -128,16 +129,9 @@ export const useConnectWallet = () => {
       const accounts = await requestAccounts();
       accounts?.length && setCurrentEcdsaAccount(accounts[0]);
 
-      const chainId = getChainId(currentNetworkIdx.value);
-
       const provider = getEvmProvider(currentWallet);
       if (!provider) {
         return false;
-      }
-
-      // Memo: Do not change the network for the Bridge page
-      if (currentRouter.value.name !== 'Bridge') {
-        isSetupNetwork && (await setupNetwork({ network: chainId, provider }));
       }
 
       // If SubWallet return empty evm accounts, it required to switch to evm network and will request accounts again.

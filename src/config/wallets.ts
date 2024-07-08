@@ -29,6 +29,9 @@ export enum SupportWallet {
   EnkryptNative = 'enkrypt',
   WalletConnect = 'wallet-connect',
   Plutonication = 'plutonication',
+  Dcent = 'DcentWallet',
+  DcentEvm = 'DcentWalletEvm',
+  Okx = 'okxwallet',
 }
 
 export enum SupportMultisig {
@@ -61,6 +64,9 @@ export const WalletModalOption = {
   Snap: SupportWallet.Snap,
   EnkryptEvm: SupportWallet.EnkryptEvm,
   EnkryptNative: SupportWallet.EnkryptNative,
+  Dcent: SupportWallet.Dcent,
+  DcentEvm: SupportWallet.DcentEvm,
+  Okx: SupportWallet.Okx,
 };
 
 export const SubstrateWallets = [
@@ -78,6 +84,7 @@ export const SubstrateWallets = [
   SupportWallet.Snap,
   SupportWallet.EnkryptNative,
   SupportWallet.Plutonication,
+  SupportWallet.Dcent,
 ];
 
 export interface Wallet {
@@ -211,6 +218,15 @@ export const supportWalletObj = {
     isSupportBrowserExtension: true,
     isSupportMobileApp: false,
   },
+  [SupportWallet.Dcent]: {
+    img: require('/src/assets/img/icon_dcent.png'),
+    name: "D'CENT Wallet",
+    source: SupportWallet.Dcent,
+    walletUrl: 'https://store.dcentwallet.com/pages/dcent-wallet-app',
+    guideUrl: 'https://userguide.dcentwallet.com',
+    isSupportBrowserExtension: false,
+    isSupportMobileApp: true,
+  },
 };
 
 export const supportEvmWalletObj = {
@@ -313,6 +329,26 @@ export const supportEvmWalletObj = {
     isSupportBrowserExtension: true,
     isSupportMobileApp: false,
     ethExtension: SupportWallet.WalletConnect,
+  },
+  [SupportWallet.DcentEvm]: {
+    img: require('/src/assets/img/icon_dcent.png'),
+    name: "D'CENT Wallet (EVM)",
+    source: SupportWallet.DcentEvm,
+    walletUrl: 'https://store.dcentwallet.com/pages/dcent-wallet-app',
+    guideUrl: 'https://userguide.dcentwallet.com',
+    isSupportBrowserExtension: false,
+    isSupportMobileApp: true,
+    ethExtension: 'ethereum',
+  },
+  [SupportWallet.Okx]: {
+    img: require('/src/assets/img/icon_okx.png'),
+    name: 'OKX Wallet',
+    source: SupportWallet.Okx,
+    walletUrl: 'https://www.okx.com/web3',
+    guideUrl: 'https://www.okx.com/web3',
+    isSupportBrowserExtension: true,
+    isSupportMobileApp: false,
+    ethExtension: 'okxwallet',
   },
 };
 
