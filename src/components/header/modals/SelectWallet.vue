@@ -262,11 +262,11 @@ export default defineComponent({
       if (source === SupportWallet.Snap) {
         await handleMetaMaskSnap();
       } else if (source == SupportWallet.Plutonication) {
-        console.log('Connecting to PlutoWallet');
         const accessCredentials = new AccessCredentials(
-          'wss://plutonication-acnha.ondigitalocean.app/',
+          'wss://plutonication.com/',
           'Astar portal',
-          'https://rostislavlitovkin.pythonanywhere.com/plutowalleticonwhite'
+          'https://plutonication.com/dapp/astar-icon',
+          'Astar'
         );
 
         await initializePlutonicationDAppClientWithModal(

@@ -216,7 +216,7 @@ export const supportWalletObj = {
     walletUrl: 'https://plutonication.com',
     guideUrl: 'https://plutonication.com',
     isSupportBrowserExtension: true,
-    isSupportMobileApp: false,
+    isSupportMobileApp: true,
   },
   [SupportWallet.Dcent]: {
     img: require('/src/assets/img/icon_dcent.png'),
